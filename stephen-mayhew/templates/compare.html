@@ -1,0 +1,57 @@
+{% extends "site_base.html" %}
+
+{% block body_main %}
+
+
+{% if msg %}
+<p>{{ msg }} </p>
+{% endif %}
+
+
+{% if featlist %}
+
+ 
+<table class="table">
+  <tr><th>FeatName</th><th>L1 Value</th><th>L2 Value</th></tr>
+  {% for feat in featlist %}
+  <tr><td>{{ feat.name }}</td><td>{{ feat.l1 }} </td><td> {{ feat.l2 }}</td></tr>
+  {% endfor %}
+</table>
+
+{% elif featsets %}
+
+
+
+<table class="table">
+  <tr><th>Common</th></tr>
+  <tr>
+    <td>
+      {% for s in featsets.common %}
+      {{s.Phoneme}}
+      {% endfor %}
+    </td>
+  </tr>
+  <tr><th>Unique to {{ l1 }}</th></tr>
+  <tr>
+    <td>
+      {% for s in featsets.l1sounds %}
+      {{ s.Phoneme }}
+      {% endfor %}
+    </td>
+  </tr>
+  <tr><th>Unique to {{ l2 }}</th></tr>
+  <tr>
+    <td>
+      {% for s in featsets.l2sounds %}
+      {{ s.Phoneme }}
+      {% endfor %}
+    </td>
+  </tr>  
+</table>
+
+{% else %}
+    <p>Hmmm. This should be accessed with GET parameters...</p>
+{% endif %}
+
+
+{% endblock %}
