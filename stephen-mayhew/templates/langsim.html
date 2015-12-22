@@ -13,7 +13,7 @@
 {% endif %}
 
 <table class="table">
-  <tr><th>Language</th><th>Distance</th></tr>
+  <tr><th>Language</th><th>{{ metricname }}</th></tr>
   {% for lang in langlist %}
   <tr><td><a href="/compare/{{method}}?l1={{tgtlang}}&l2={{lang.langname}}">{{ lang.lang }}</a></td><td> {{ lang.score }}</td></tr>
   {% endfor %}

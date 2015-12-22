@@ -19,7 +19,8 @@ from crispy_forms.layout import Submit
 
 class LangForm(forms.Form):
         language = forms.ChoiceField(label=u'Target Language', choices=[], widget=forms.Select(), required=True)
-        only_hr = forms.BooleanField(label=u'See only High Resource Languages', initial=True, widget=forms.CheckboxInput(), required=True)
+        only_hr = forms.BooleanField(label=u'See only High Resource Languages', initial=True, widget=forms.CheckboxInput(attrs={'disabled': False}), required=True)
+        scripts = forms.BooleanField(label=u'Take script distance into account', initial=True, widget=forms.CheckboxInput(), required=True)
         
         def __init__(self, *args, **kwargs):
                 lang_choices = kwargs.pop('lang')
@@ -63,7 +64,12 @@ def showlangsim_wals(request):
         if langlist:
                 langlist = map(lambda p: {"langname" : p[1].split(":")[0], "lang": p[1], "score":"{0:2f}".format(p[0])}, langlist)
         
-        return render(request, 'langsim.html', {'tgtlang':lang, 'form': form, 'langlist' : langlist, 'msg':msg, "method":"wals"})
+        return render(request, 'langsim.html', {'tgtlang':lang,
+                                                'form': form,
+                                                'langlist' : langlist,
+                                                'msg':msg,
+                                                'metricname' : "Distance",
+                                                "method":"wals"})
 
 
 def showlangsim_upsid(request):
@@ -91,7 +97,12 @@ def showlangsim_upsid(request):
         if langlist:
                 langlist = map(lambda p: {"langname" : p[1], "lang": p[1], "score":"{0}".format(p[0])}, langlist)
                 
-        return render(request, 'langsim.html', {'tgtlang':lang, 'form': form, 'langlist' : langlist, 'msg': msg, 'method':"upsid"})
+        return render(request, 'langsim.html', {'tgtlang':lang,
+                                                'form': form,
+                                                'langlist' : langlist,
+                                                'msg': msg,
+                                                'metricname' : "Common",
+                                                'method':"upsid"})
 
 def showlangsim_phoible(request):
         fname = "/home/django/stephen-mayhew/stephen-mayhew/phoible/gold-standard/phoible-phonemes.tsv"
@@ -105,9 +116,10 @@ def showlangsim_phoible(request):
         if request.method == 'GET' and 'language' in request.GET:
                 lang = request.GET['language']
                 only_hr = True if "only_hr" in request.GET else False
+                scripts = True if "scripts" in request.GET else False
                 #only_hr = True if request.GET['only_hr'] == "on" else False
                 #langlist = langsim(fname, lang, 0.7, True, only_hr=only_hr, topk=100)
-                langlist = phoible.langsim(lang, langs, only_hr=only_hr)
+                langlist = phoible.langsim(lang, langs, only_hr=only_hr, script_rerank=scripts)
                 msg = "Showing results for " + lang
 
                 form.fields['language'].initial = lang
@@ -119,7 +131,12 @@ def showlangsim_phoible(request):
         if langlist:
                 langlist = map(lambda p: {"langname" : p[1], "lang": code2name[p[1]], "score":"{0}".format(p[0])}, langlist)
                 
-        return render(request, 'langsim.html', {'tgtlang':lang, 'form': form, 'langlist' : langlist, 'msg': msg, 'method':"phoible"})
+        return render(request, 'langsim.html', {'tgtlang':lang,
+                                                'form': form,
+                                                'langlist' : langlist,
+                                                'msg': msg,
+                                                'metricname' : "F1",
+                                                'method':"phoible"})
 
 
 def compare_wals(request):
