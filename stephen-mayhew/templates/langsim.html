@@ -9,13 +9,33 @@
 {% if langlist %}
 
 {% if msg %}
-<p>{{ msg }}. For WALS: Distance is (0,1) and smaller distance means two languages are more similar. For UPSID: it's an integer (large range) and is the number of sounds that are shared between languages. Larger is better.</p>
+<p>{{ msg }}.</p>
+
 {% endif %}
 
+{% if errmsg %}
+<div class="alert alert-warning" role="alert">
+    <strong>Warning: </strong> {{ errmsg }}
+</div>
+{% endif %}
+
+
+
 <table class="table">
-  <tr><th>Language</th><th>{{ metricname }}</th></tr>
+  <tr>
+    <th>Language</th>
+    <th>Overall</th>
+    <th>Phon. Score</th>
+    <th>WALS</th>
+    <th>Script</th>
+  </tr>
   {% for lang in langlist %}
-  <tr><td><a href="/compare/{{method}}?l1={{tgtlang}}&l2={{lang.langname}}">{{ lang.lang }}</a></td><td> {{ lang.score }}</td></tr>
+  <tr>
+    <td><a href="/compare/{{method}}?l1={{tgtlang}}&l2={{lang.langid}}">{{ lang.langname }}</a></td>
+    <td> {{ lang.overall }}</td>
+    <td>{{ lang.phonscore }}</td>
+    <td>{{lang.wals}}</td>
+    <td>{{ lang.scriptdist }}</td></tr>
   {% endfor %}
 </table>
 

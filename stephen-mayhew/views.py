@@ -17,10 +17,13 @@ from django.forms import widgets
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
+wals_file = "/home/django/stephen-mayhew/stephen-mayhew/wals/language.csv"
+
 class LangForm(forms.Form):
         language = forms.ChoiceField(label=u'Target Language', choices=[], widget=forms.Select(), required=True)
         only_hr = forms.BooleanField(label=u'See only High Resource Languages', initial=True, widget=forms.CheckboxInput(attrs={'disabled': False}), required=True)
         scripts = forms.BooleanField(label=u'Take script distance into account', initial=True, widget=forms.CheckboxInput(), required=True)
+        use_wals = forms.BooleanField(label=u'Use WALS features in ranking', initial=True, widget=forms.CheckboxInput(), required=True)
         
         def __init__(self, *args, **kwargs):
                 lang_choices = kwargs.pop('lang')
@@ -39,11 +42,10 @@ class LangForm(forms.Form):
 
                 
 def showlangsim_wals(request):
-        fname = "/home/django/stephen-mayhew/stephen-mayhew/wals/language.csv"
 
         #langs = filter(lambda f: f.nonzerofrac > 0.0, wals.loadLangs(fname))
-        langs = wals.loadLangs(fname)
-        langoptions = map(lambda p: (p["Name"],p["Name"]), langs)
+        langs = wals.loadLangs(wals_file)
+        langoptions = map(lambda p: (p["iso_code"],p["Name"]), langs)
         
         
         form = LangForm(lang=langoptions, action="/langsim/wals")
@@ -87,25 +89,88 @@ def showlangsim_phoible(request):
                 lang = request.GET['language']
                 only_hr = True if "only_hr" in request.GET else False
                 scripts = True if "scripts" in request.GET else False
-                #only_hr = True if request.GET['only_hr'] == "on" else False
-                #langlist = langsim(fname, lang, 0.7, True, only_hr=only_hr, topk=100)
-                langlist = phoible.langsim(lang, langs, only_hr=only_hr, script_rerank=scripts)
-                msg = "Showing results for " + lang
+                use_wals = True if "use_wals" in request.GET else False
 
+                # list of dictionaries (sorted by phonscore), with keys phonscore, scriptdist, langid
+                langlist = phoible.langsim(lang, langs,code2name, only_hr=only_hr, script_rerank=scripts)
+                msg = "Showing results for " + lang
+                errmsg = ""
+                if use_wals:
+                        # this is a list of WALSLanguage objects
+                        wals_langs = wals.loadLangs(wals_file)
+
+                        # maps ISO code to the object
+                        wldct = {}
+                        wl_lang = None
+                        for wl in wals_langs:
+                                wldct[wl["iso_code"]] = wl
+                                if wl["iso_code"] == lang:
+                                        wl_lang = wl
+
+                        if wl_lang == None:
+                                errmsg += "Couldn't find " + lang + " in wals_langs."
+                        else:
+                                # rerank langlist according to genus/family
+                                # if genus the same, multiply by 1.5,
+                                # if family and genus the same, multiply by 2
+                                reranked = []
+                                for phl in langlist:
+                                        phlid = phl["langid"]
+
+                                        if phlid not in wldct:
+                                                errmsg += "WALS does not have phoible lang: {0} ({1}). ".format(code2name[phlid],phlid)
+                                                phl["wals"] = 1
+                                                continue
+                                        currlang = wldct[phlid]
+
+                                        # compare currlang against wl_lang
+                                        multiplier = 1
+                                        if currlang["genus"] == wl_lang["genus"]:
+                                                multiplier = 1.5
+                                                if currlang["family"] == wl_lang["family"]:
+                                                        multiplier = 2
+                                                        
+                                        phl["wals"] = multiplier
+
+                
                 form.fields['language'].initial = lang
         else:
                 langlist = None
                 msg = None
+                errmsg = None
                 lang = None
 
+        def mapLL(p):
+                """
+                This is the format that langsim.html expects.
+                """
+                langname = code2name[p["langid"]]
+
+                p["langname"] = langname
+
+                p["overall"] = p["phonscore"]
+                
+                if "wals" in p:
+                        p["overall"] *= p["wals"]
+                if "scriptdist" in p:
+                        if p["scriptdist"] is None:
+                                p["overall"] = 0
+                        else:
+                                p["overall"] *= p["scriptdist"]
+                
+                return p
+                
         if langlist:
-                langlist = map(lambda p: {"langname" : p[1], "lang": code2name[p[1]], "score":"{0}".format(p[0])}, langlist)
+                langlist = map(mapLL, langlist)
+                # then rerank according to score...
+                langlist = sorted(langlist, key=lambda p: p["overall"], reverse=True)
                 
         return render(request, 'langsim.html', {'tgtlang':lang,
                                                 'form': form,
                                                 'langlist' : langlist,
                                                 'msg': msg,
-                                                'metricname' : "F1",
+                                                'errmsg': errmsg,
+                                                'metricname' : "Overall",
                                                 'method':"phoible"})
 
 
