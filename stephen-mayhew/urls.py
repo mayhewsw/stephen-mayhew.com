@@ -11,11 +11,9 @@ urlpatterns = patterns('',
                        url(r'^langsim$', TemplateView.as_view(template_name='choose.html')),
 
                        url(r'^langsim/wals$', views.showlangsim_wals),
-                       url(r'^langsim/upsid$', views.showlangsim_upsid),
                        url(r'^langsim/phoible$', views.showlangsim_phoible),
                        
                        url(r'^compare/wals$', views.compare_wals),
-                       url(r'^compare/upsid$', views.compare_upsid),
                        url(r'^compare/phoible$', views.compare_phoible),
                        
                        url(r'^admin/', include(admin.site.urls)),

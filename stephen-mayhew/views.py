@@ -5,7 +5,7 @@ from django.shortcuts import render
 from wals.langsim import *
 import wals.wals as wals
 from wals.compare import *
-import wals.upsid as upsid
+
 
 import sys
 sys.path.insert(0, '/home/django/stephen-mayhew/stephen-mayhew/phoible/python') # HAACK
@@ -41,16 +41,18 @@ class LangForm(forms.Form):
 def showlangsim_wals(request):
         fname = "/home/django/stephen-mayhew/stephen-mayhew/wals/language.csv"
 
-        langs = filter(lambda f: f.nonzerofrac > 0.7, wals.loadLangs(fname))
+        #langs = filter(lambda f: f.nonzerofrac > 0.0, wals.loadLangs(fname))
+        langs = wals.loadLangs(fname)
         langoptions = map(lambda p: (p["Name"],p["Name"]), langs)
-
+        
+        
         form = LangForm(lang=langoptions, action="/langsim/wals")
         
         if request.method == 'GET' and 'language' in request.GET:
                 lang = request.GET['language']
                 only_hr = True if "only_hr" in request.GET else False
                 #only_hr = True if request.GET['only_hr'] == "on" else False
-                langlist = langsim(fname, lang, 0.7, True, only_hr=only_hr, topk=100)
+                langlist = langsim(fname, lang, 0.0, True, only_hr=only_hr, topk=100)
                 #langlist = None
                 msg = "Showing results for " + lang
 
@@ -71,38 +73,6 @@ def showlangsim_wals(request):
                                                 'metricname' : "Distance",
                                                 "method":"wals"})
 
-
-def showlangsim_upsid(request):
-        fname = "/home/django/stephen-mayhew/stephen-mayhew/wals/upsid_matrix.tsv"
-
-        langs = upsid.loadLangs(fname)
-        langoptions = map(lambda p: (p.name,p.name), langs)
-
-        form = LangForm(lang=langoptions, action="/langsim/upsid")
-
-        if request.method == 'GET' and 'language' in request.GET:
-                lang = request.GET['language']
-                only_hr = True if "only_hr" in request.GET else False
-                #only_hr = True if request.GET['only_hr'] == "on" else False
-                #langlist = langsim(fname, lang, 0.7, True, only_hr=only_hr, topk=100)
-                langlist = upsid.langsim(lang, langs)
-                msg = "Showing results for " + lang
-
-                form.fields['language'].initial = lang
-        else:
-                langlist = None
-                msg = None
-                lang = None
-
-        if langlist:
-                langlist = map(lambda p: {"langname" : p[1], "lang": p[1], "score":"{0}".format(p[0])}, langlist)
-                
-        return render(request, 'langsim.html', {'tgtlang':lang,
-                                                'form': form,
-                                                'langlist' : langlist,
-                                                'msg': msg,
-                                                'metricname' : "Common",
-                                                'method':"upsid"})
 
 def showlangsim_phoible(request):
         fname = "/home/django/stephen-mayhew/stephen-mayhew/phoible/gold-standard/phoible-phonemes.tsv"
@@ -162,29 +132,6 @@ def compare_wals(request):
                 
         return render(request, 'compare.html', {'featlist' : featlist, 'msg':msg, 'l1':l1, 'l2':l2 })
         
-def compare_upsid(request):
-        
-        fname = "/home/django/stephen-mayhew/stephen-mayhew/wals/upsid_matrix.tsv"
-        
-        msg = None
-        lang1 = None
-        lang2 = None
-        
-        if request.method == 'GET' and 'l1' in request.GET and 'l2' in request.GET:
-                l1 = request.GET['l1']
-                l2 = request.GET['l2']
-                langs = upsid.loadLangs(fname)
-                for lang in langs:
-                        if lang.name == l1:
-                                lang1 = lang
-                        if lang.name == l2:
-                                lang2 = lang
-                msg = "Showing phonetic results for {0} and {1}".format(l1,l2)
-                                                    
-        return render(request, 'compare.html', {'featlist' : None, 'msg' : msg,  'l1':l1, 'l2':l2, 
-                                                'featsets': {'common' : lang1.sounds.intersection(lang2.sounds),
-                                                             'l1sounds' : lang1.sounds.difference(lang2.sounds),
-                                                             'l2sounds' : lang2.sounds.difference(lang1.sounds)} })
 
 def compare_phoible(request):
         
