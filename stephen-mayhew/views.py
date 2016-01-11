@@ -83,7 +83,7 @@ def showlangsim_phoible(request):
 
         langoptions = sorted([(lang, code2name[lang]) for lang in langs], key=lambda n: n[1].lower())
         
-        form = LangForm(lang=langoptions, action="/langsim/phoible")
+        form = LangForm(lang=langoptions, action="/langsim")
 
         if request.method == 'GET' and 'language' in request.GET:
                 lang = request.GET['language']
@@ -124,11 +124,11 @@ def showlangsim_phoible(request):
                                         currlang = wldct[phlid]
 
                                         # compare currlang against wl_lang
-                                        multiplier = 1
-                                        if currlang["genus"] == wl_lang["genus"]:
-                                                multiplier = 1.5
-                                                if currlang["family"] == wl_lang["family"]:
-                                                        multiplier = 2
+                                        multiplier = 0
+                                        if currlang["family"] == wl_lang["family"]:
+                                                multiplier = 0.5
+                                                if currlang["genus"] == wl_lang["genus"]:
+                                                        multiplier = 1
                                                         
                                         phl["wals"] = multiplier
 
@@ -148,15 +148,18 @@ def showlangsim_phoible(request):
 
                 p["langname"] = langname
 
-                p["overall"] = p["phonscore"]
+                if "wals" in p and "scriptdist" in p and p["scriptdist"] is not None:
+                        p["overall"] = 0.333 * p["phonscore"] + 0.333 * p["wals"] + 0.333 * p["scriptdist"]
+                else:
+                        p["overall"] = 0.00123
                 
-                if "wals" in p:
-                        p["overall"] *= p["wals"]
-                if "scriptdist" in p:
-                        if p["scriptdist"] is None:
-                                p["overall"] = 0
-                        else:
-                                p["overall"] *= p["scriptdist"]
+                #if "wals" in p:
+                #        p["overall"] += 0.333 * p["wals"]
+                #if "scriptdist" in p:
+                #        if p["scriptdist"] is None:
+                #                p["overall"] = 0
+                #        else:
+                #                p["overall"] += 0.333 * p["scriptdist"]
                 
                 return p
                 
